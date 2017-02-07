@@ -112,14 +112,15 @@ public class NpvrREST {
 	 * @return
 	 */
 	public Channel callChannelService(Record record)  throws NpvrException {
-		LOGGER.info("@@@@@@@@@@@@  NpvrREST.callChannelService()    @@@@@@@@@@  ");		
+		LOGGER.info("@@@@@@@@@@@@  Call Channel Service    @@@@@@@@@@  ");		
 		
-		String path = "channel/" + record.getChannelId();		
-		WebTarget ChannelService = ClientBuilder.newClient()
-				.target(UriBuilder.fromUri(URI.create("http://10.131.126.158:8180/")).path(path).build());
+		String path = "/channel/" + record.getChannelId();		
+		WebTarget channelService = ClientBuilder.newClient()
+				.target(UriBuilder.fromUri(URI.create("http://channel-wildflyswarm.apps.10.2.2.2.xip.io")).path(path).build());
+		LOGGER.info("Uri = " + channelService.getUri().toString());
 		Channel channel = null;
 		try{
-			channel = ChannelService.request().accept(MediaType.APPLICATION_JSON).get(Channel.class);
+			channel = channelService.request().accept(MediaType.APPLICATION_JSON).get(Channel.class);
 		} catch(Exception exception) {
 			LOGGER.info("########################");
 			LOGGER.info("Channel Service Down !!!");
@@ -137,17 +138,19 @@ public class NpvrREST {
 	 * @return
 	 */
 	public Programme callProgrammeService(Record record)  throws NpvrException {
-		LOGGER.info("@@@@@@@@@@@@  NpvrREST.callProgrammeService()    @@@@@@@@@@  ");		
+		LOGGER.info("@@@@@@@@@@@@  Call Programme Service    @@@@@@@@@@  ");		
 		
-		String path = "programme/" + record.getProgramId();
+		String path = "/programme/" + record.getProgramId();
 		
-		WebTarget ChannelService = ClientBuilder.newClient()
-				.target(UriBuilder.fromUri(URI.create("http://10.131.126.158:8280/")).path(path).build());
+		WebTarget programmeService = ClientBuilder.newClient()
+				.target(UriBuilder.fromUri(URI.create("http://programme-wildflyswarm.apps.10.2.2.2.xip.io")).path(path).build());
+		
+		LOGGER.info("Uri = " + programmeService.getUri().toString());
 		
 		Programme programme = null;	
 		
 		try{
-			programme = ChannelService.request().accept(MediaType.APPLICATION_JSON).get(Programme.class);
+			programme = programmeService.request().accept(MediaType.APPLICATION_JSON).get(Programme.class);
 		} catch(Exception exception) {
 			throw new NpvrException("Programme Service Down !!",102);	
 		}
