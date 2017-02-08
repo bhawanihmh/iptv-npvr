@@ -100,10 +100,11 @@ public class NpvrREST {
 	
 	@GET
 	@Path("hi")
-    @Produces({"application/xml", "application/json"})
+    //@Produces({"application/xml", "application/json"})
+	@Produces({MediaType.TEXT_PLAIN})
     public String hi() {
 		LOGGER.info("NpvrREST.hi()");
-		return "Hello Bhawani !!!";
+		return "Hello World !!!";
 	}
 
 	/**
