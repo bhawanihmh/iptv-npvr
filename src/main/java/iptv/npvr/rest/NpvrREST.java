@@ -39,6 +39,10 @@ public class NpvrREST {
 	@SuppressWarnings("unused")
 	private static final Logger LOGGER = Logger.getLogger(NpvrREST.class.getName());
 	
+	static{
+		loadCache();
+	}  
+	
 	static final long ONE_MINUTE_IN_MILLIS = 60000;//millisecs
 
 	@POST
@@ -152,6 +156,25 @@ public class NpvrREST {
 		}
 		
 		return programme;
-	}
+	}	
 	
+	private static void loadCache(){
+		System.out.println("NpvrREST.loadCache()");
+		String url = "http://channel-wildflyswarm.apps.10.2.2.2.xip.io";
+		//String url = "http://10.131.126.158:8380";
+		String path = "/channel/hi";		
+		WebTarget channelService = ClientBuilder.newClient()
+				.target(UriBuilder.fromUri(URI.create(url)).path(path).build());
+		LOGGER.info("Uri = " + channelService.getUri().toString());
+		String val = channelService.request().accept(MediaType.TEXT_PLAIN).get(String.class);	
+			
+		
+		url = "http://programme-wildflyswarm.apps.10.2.2.2.xip.io";
+		//url = "http://10.131.126.158:8480";
+		path = "/programme/hi";		
+		WebTarget programmeService = ClientBuilder.newClient()
+				.target(UriBuilder.fromUri(URI.create(url)).path(path).build());		
+		LOGGER.info("Uri = " + programmeService.getUri().toString());
+		val = programmeService.request().accept(MediaType.TEXT_PLAIN).get(String.class);		
+	}	
 }
