@@ -13,13 +13,16 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({ "channelId", "callSign" })
+@JsonPropertyOrder({ "channelId", "callSign", "isFallBack" })
 public class Channel implements Serializable {
 
 	@JsonProperty("channelId")
 	private String channelId;
 	@JsonProperty("callSign")
 	private String callSign;
+	@JsonProperty("isFallBack")
+	private boolean isFallBack;
+	
 	@JsonIgnore
 	private final static long serialVersionUID = 1117074953613238204L;
 
@@ -59,6 +62,16 @@ public class Channel implements Serializable {
 	@JsonProperty("callSign")
 	public void setCallSign(String callSign) {
 		this.callSign = callSign;
+	}
+
+	@JsonProperty("isFallBack")
+	public boolean isFallBack() {
+		return isFallBack;
+	}
+
+	@JsonProperty("isFallBack")
+	public void setFallBack(boolean isFallBack) {
+		this.isFallBack = isFallBack;
 	}
 
 }

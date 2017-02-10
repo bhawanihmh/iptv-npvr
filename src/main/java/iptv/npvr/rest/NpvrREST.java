@@ -5,20 +5,24 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.logging.Logger;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 
+import com.netflix.config.ConfigurationManager;
+import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
+
 import iptv.npvr.exception.NpvrException;
+import iptv.npvr.hystrix.ChannelHystrixCommand;
 import iptv.npvr.pojo.Channel;
 import iptv.npvr.pojo.NPVR;
 import iptv.npvr.pojo.Programme;
@@ -38,17 +42,19 @@ public class NpvrREST {
 	static final long ONE_MINUTE_IN_MILLIS = 60000;//millisecs
 
 	@POST
-	@Path("record")
+	@Path("record/{flag}")
 	@Consumes("application/json")
     @Produces({"application/json"})
 	//@Produces({MediaType.TEXT_PLAIN})
-    public NPVR record(Record record) throws NpvrException {
+    public NPVR record(Record record, @PathParam("flag") boolean flag) throws NpvrException {
 		LOGGER.info("NpvrREST.record()");
-		NPVR  npvr = new NPVR();
+		NPVR npvr = new NPVR();
 		npvr.setRecord(record);
+		npvr.setStatus("Success");
 		LOGGER.info("getChannelId = " + record.getChannelId());
 		LOGGER.info("getProgramId = " + record.getProgramId());
 		LOGGER.info("getStartTime = " + record.getStartTime());
+		LOGGER.info("flag = " + flag);
 		
 		DateFormat df2 = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 		Date startTime = null;
@@ -60,41 +66,53 @@ public class NpvrREST {
 			e.printStackTrace();
 		}
 		
-		Channel channel = callChannelService(record);
-		if (null != channel) {			
-			LOGGER.info("successfully");
-			LOGGER.info("getChannelId = " + channel.getChannelId());
-			LOGGER.info("getCallSign = " + channel.getCallSign());
-			
-			npvr.setChannel(channel);			
-			Programme programme = callProgrammeService(record);
-			
-			if (null != programme) {			
-				LOGGER.info("successfully");
-				LOGGER.info("getProgId = " + programme.getProgId());
-				LOGGER.info("getProgName = " + programme.getProgName());
-				LOGGER.info("getProgDuration = " + programme.getProgDuration());
+		Channel channel = null;		
+		HystrixRequestContext context = HystrixRequestContext.initializeContext();
+		try {
+			ConfigurationManager.getConfigInstance().setProperty("primarySecondary.usePrimary", true);
+			channel = new ChannelHystrixCommand("Channel",record.getChannelId(),flag).execute();			
+			if (null != channel) {				
+				LOGGER.info("getChannelId = " + channel.getChannelId());
+				LOGGER.info("getCallSign = " + channel.getCallSign());
+				if(channel.isFallBack()){
+					npvr.setStatus("Success: Returned from Circuit Breaker");
+					LOGGER.info("Success: Returned from Circuit Breaker");
+				} else {
+					LOGGER.info("Success");
+				}
+				npvr.setChannel(channel);			
+				Programme programme = callProgrammeService(record);
 				
-				long val = startTime.getTime();
-		        
-		        Date afterAddingTenMins = new Date(val 
-		        		+ ((programme.getProgDuration().intValue()) * ONE_MINUTE_IN_MILLIS));
-		        
-		        LOGGER.info("Date in dd-MM-yyyy HH:mm:ss format is: " + df2.format(afterAddingTenMins));	
-		        
-		        record.setEndTime(df2.format(afterAddingTenMins));
+				if (null != programme) {			
+					LOGGER.info("Programme get successfully");
+					LOGGER.info("getProgId = " + programme.getProgId());
+					LOGGER.info("getProgName = " + programme.getProgName());
+					LOGGER.info("getProgDuration = " + programme.getProgDuration());
+					
+					long val = startTime.getTime();
+			        
+			        Date afterAddingTenMins = new Date(val 
+			        		+ ((programme.getProgDuration().intValue()) * ONE_MINUTE_IN_MILLIS));
+			        
+			        LOGGER.info("Date in dd-MM-yyyy HH:mm:ss format is: " + df2.format(afterAddingTenMins));	
+			        
+			        record.setEndTime(df2.format(afterAddingTenMins));
+					
+					npvr.setProgramme(programme);
+				} else {
+					LOGGER.info("Programme Not found");
+					throw new NpvrException("Programme Not found !!",104);				
+				}
 				
-				npvr.setProgramme(programme);
 			} else {
-				LOGGER.info("Programme Not found");
-				throw new NpvrException("Programme Not found !!",104);				
-			}
-			
-		} else {
-			LOGGER.info("Channel Not found");
-			throw new NpvrException("Channel Not found !!",103);			
-		}		
-		npvr.setStatus("Success");
+				LOGGER.info("Channel Not found");
+				throw new NpvrException("Channel Not found !!",103);			
+			}			
+		} finally {
+			context.shutdown();
+			ConfigurationManager.getConfigInstance().clear();
+		}
+		
 		return npvr;
 	}
 	
@@ -107,31 +125,7 @@ public class NpvrREST {
 		return "Hello World !!!";
 	}
 
-	/**
-	 * 
-	 * @param record
-	 * @return
-	 */
-	public Channel callChannelService(Record record)  throws NpvrException {
-		LOGGER.info("@@@@@@@@@@@@  Call Channel Service    @@@@@@@@@@  ");		
-		
-		String path = "/channel/" + record.getChannelId();		
-		WebTarget channelService = ClientBuilder.newClient()
-				.target(UriBuilder.fromUri(URI.create("http://channel-wildflyswarm.apps.10.2.2.2.xip.io")).path(path).build());
-		LOGGER.info("Uri = " + channelService.getUri().toString());
-		Channel channel = null;
-		try{
-			channel = channelService.request().accept(MediaType.APPLICATION_JSON).get(Channel.class);
-		} catch(Exception exception) {
-			LOGGER.info("########################");
-			LOGGER.info("Channel Service Down !!!");
-			LOGGER.info("########################");
-			return channels.get(record.getChannelId());		
-			//throw new NpvrException("Channel Service Down !!",101);	
-		}
-		
-		return channel;
-	}
+	
 	
 	/**
 	 * 
@@ -140,11 +134,12 @@ public class NpvrREST {
 	 */
 	public Programme callProgrammeService(Record record)  throws NpvrException {
 		LOGGER.info("@@@@@@@@@@@@  Call Programme Service    @@@@@@@@@@  ");		
-		
+		//String url = "http://programme-wildflyswarm.apps.10.2.2.2.xip.io";
+		String url = "http://10.131.126.158:8480";
 		String path = "/programme/" + record.getProgramId();
 		
 		WebTarget programmeService = ClientBuilder.newClient()
-				.target(UriBuilder.fromUri(URI.create("http://programme-wildflyswarm.apps.10.2.2.2.xip.io")).path(path).build());
+				.target(UriBuilder.fromUri(URI.create(url)).path(path).build());
 		
 		LOGGER.info("Uri = " + programmeService.getUri().toString());
 		
@@ -157,17 +152,6 @@ public class NpvrREST {
 		}
 		
 		return programme;
-	}
-	
-	
-	private static HashMap<String,Channel> channels = new HashMap<String,Channel>();	
-	
-	static {
-		
-		for(int i=0; i<=10; i++){
-			channels.put(""+i, new Channel(""+i, "CHAN"+i));
-		}
-		
 	}
 	
 }
