@@ -138,7 +138,8 @@ public class NpvrREST {
 	 */
 	public Programme callProgrammeService(Record record)  throws NpvrException {
 		LOGGER.info("@@@@@@@@@@@@  Call Programme Service    @@@@@@@@@@  ");		
-		String url = "http://programme-wildflyswarm.apps.10.2.2.2.xip.io";
+		//String url = "http://programme-wildflyswarm.apps.10.2.2.2.xip.io";
+		String url = "http://programme";
 		//String url = "http://10.131.126.158:8480";
 		String path = "/programme/" + record.getProgramId();
 		
