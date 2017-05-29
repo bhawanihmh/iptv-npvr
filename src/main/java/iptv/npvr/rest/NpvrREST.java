@@ -160,7 +160,8 @@ public class NpvrREST {
 	
 	private static void loadCache(){
 		System.out.println("NpvrREST.loadCache()");
-		String url = "http://channel-wildflyswarm.apps.10.2.2.2.xip.io";
+		//String url = "http://channel-wildflyswarm.apps.10.2.2.2.xip.io";
+		String url = "http://channel";
 		//String url = "http://10.131.126.158:8380";
 		String path = "/channel/hi";		
 		WebTarget channelService = ClientBuilder.newClient()
@@ -169,7 +170,8 @@ public class NpvrREST {
 		String val = channelService.request().accept(MediaType.TEXT_PLAIN).get(String.class);	
 			
 		
-		url = "http://programme-wildflyswarm.apps.10.2.2.2.xip.io";
+		//url = "http://programme-wildflyswarm.apps.10.2.2.2.xip.io";
+		url = "http://programme";
 		//url = "http://10.131.126.158:8480";
 		path = "/programme/hi";		
 		WebTarget programmeService = ClientBuilder.newClient()
