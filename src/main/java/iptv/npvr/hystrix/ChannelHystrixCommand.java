@@ -84,7 +84,8 @@ public class ChannelHystrixCommand extends HystrixCommand<Channel> {
 	 */
 	public Channel callChannelService()  throws NpvrException {
 		LOGGER.info("@@@@@@@@@@@@  Call Channel Service    @@@@@@@@@@  ");
-		String url = "http://channel-wildflyswarm.apps.10.2.2.2.xip.io";
+		//String url = "http://channel-wildflyswarm.apps.10.2.2.2.xip.io";
+		String url = "http://channel";
 		//String url = "http://10.131.126.158:8380";
 		String path = "/channel/" + channelId + "/" + flag;		
 		WebTarget channelService = ClientBuilder.newClient()
